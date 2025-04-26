@@ -1,0 +1,26 @@
+# Use a modern Docker Compose file format
+# version: '3.8'
+
+services:
+  # Define your web service
+  web:
+    # Build the image using the Dockerfile in the current directory
+    build: .
+    # Map port 4001 on the host to port 4001 in the container
+    ports:
+      - "4001:4001"
+    # Mount a named volume to persist the downloaded GloVe data
+    # The volume is mounted to the '/app/glove' directory inside the container
+    # where the application expects the GloVe file to be.
+    volumes:
+      - glove_data:/app/glove
+    # Restart the container if it exits, unless stopped manually
+    restart: unless-stopped
+    # Environment variables can be set here if needed
+    # environment:
+    #   - FLASK_ENV=production
+
+# Define the named volume
+volumes:
+  # This creates a volume managed by Docker to store the glove data persistently
+  glove_data:
