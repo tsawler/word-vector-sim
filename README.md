@@ -81,8 +81,8 @@ If you prefer to run the service without Docker:
 
 1. Clone this repository:
    ```bash
-   git clone https://your-repository-url.git
-   cd word-vector-similarity-service
+   git clone https://github.com/tsawler/word-vector-sim.git
+   cd word-vector-sim
    ```
 
 2. Create a virtual environment and install dependencies:
