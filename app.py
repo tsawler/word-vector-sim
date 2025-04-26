@@ -1,7 +1,7 @@
 import numpy as np
 from flask import Flask, request, jsonify
 import os
-import wget
+import urllib.request  # Replace wget with urllib.request
 import zipfile
 from scipy.spatial.distance import cosine
 import sys  # Import sys to check Python version or exit gracefully
@@ -96,20 +96,33 @@ def download_glove_vectors():
             # If the zip file also doesn't exist, download it.
             print(f"Downloading GloVe vectors from {GLOVE_ZIP_URL}...")
             try:
-                # Use wget to download the file.
-                # This is an external command, assumes 'wget' is installed.
-                # '--no-verbose' reduces the output during download.
-                # In a production environment (like a Docker container),
-                # you'd ensure 'wget' is available or use Python's built-in
-                # urllib.request or the requests library for more robustness.
-                wget.download(GLOVE_ZIP_URL, glove_zip_path)
-                # wget prints progress on the same line, so print a newline
-                # character to move to the next line after the download finishes.
+                # Use urllib.request to download the file
+                # This is Python's built-in solution for downloading files
+                with urllib.request.urlopen(GLOVE_ZIP_URL) as response, open(glove_zip_path, 'wb') as out_file:
+                    # Get the total file size for progress reporting
+                    file_size = int(response.info().get('Content-Length', 0))
+                    downloaded = 0
+                    chunk_size = 8192  # 8KB chunks
+                    
+                    # Download in chunks and show progress
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        downloaded += len(chunk)
+                        out_file.write(chunk)
+                        
+                        # Print download progress
+                        if file_size > 0:
+                            percent = int(100 * downloaded / file_size)
+                            # Print progress on the same line
+                            print(f"\rDownload progress: {percent}% ({downloaded}/{file_size} bytes)", end='')
+                    
                 print("\nDownload complete")
             except Exception as e:
                  # Handle potential errors during download.
                  print(f"\nError downloading GloVe vectors: {e}")
-                 print("Please ensure you have 'wget' installed and internet access.")
+                 print("Please ensure you have internet access.")
                  # Exit the application if the download fails, as we cannot proceed.
                  sys.exit(1)
          else:

@@ -7,7 +7,6 @@ WORKDIR /app
 # Install system dependencies required for wget and unzip
 # clean up apt lists afterwards to reduce image size
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
