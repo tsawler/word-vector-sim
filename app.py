@@ -225,7 +225,7 @@ def find_closest_words(centroid, exclude_words=None, top_n=5):
 
     return top_results
 
-@app.route('/find_common_word', methods=['POST'])
+@app.route('/find-common-word', methods=['POST'])
 def find_common_word_api(): # Renamed function to avoid conflict with app name
     """API endpoint to find common word(s) that describe a group of words"""
     data = request.get_json()

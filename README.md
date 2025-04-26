@@ -14,7 +14,7 @@ This microservice provides an API to find common words that semantically describ
   - [Development Mode](#development-mode)
   - [Production Mode](#production-mode)
 - [API Documentation](#api-documentation)
-  - [Endpoint: `/find_common_word`](#endpoint-find_common_word)
+  - [Endpoint: `/find-common-word`](#endpoint-find-common-word)
   - [Request Format](#request-format)
   - [Response Format](#response-format)
   - [Example API Calls](#example-api-calls)
@@ -157,7 +157,7 @@ For production deployment (with minified JSON responses):
 
 ## API Documentation
 
-### Endpoint: `/find_common_word`
+### Endpoint: `/find-common-word`
 
 This endpoint takes a list of words and returns the top N most semantically similar words that conceptually connect them.
 
@@ -217,7 +217,7 @@ Common error messages:
 **Example 1**: Find common words for fruits
 
 ```bash
-curl -X POST http://localhost:4001/find_common_word \
+curl -X POST http://localhost:4001/find-common-word \
   -H "Content-Type: application/json" \
   -d '{"words": ["apple", "banana", "orange", "grape"], "top_n": 3}'
 ```
@@ -247,7 +247,7 @@ Example response:
 **Example 2**: Find common words for programming languages
 
 ```bash
-curl -X POST http://localhost:4001/find_common_word \
+curl -X POST http://localhost:4001/find-common-word \
   -H "Content-Type: application/json" \
   -d '{"words": ["python", "javascript", "java", "c++"], "top_n": 5}'
 ```
