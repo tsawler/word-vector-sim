@@ -137,7 +137,7 @@ For production deployment (with minified JSON responses):
 1. **Docker Production** (recommended):
    ```bash
    # Standard production deployment
-  docker compose up -d
+   docker compose up -d
    ```
 
    The default Docker Compose setup sets `FLASK_ENV=production`, which:
