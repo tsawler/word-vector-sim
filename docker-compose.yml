@@ -16,9 +16,23 @@ services:
       - glove_data:/app/glove
     # Restart the container if it exits, unless stopped manually
     restart: unless-stopped
-    # Environment variables can be set here if needed
-    # environment:
-    #   - FLASK_ENV=production
+    # Environment variables for production mode
+    environment:
+      - FLASK_ENV=production
+    # If you need different configurations for different environments, 
+    # you can use profiles or create separate compose files
+
+# For development mode, you can create a docker-compose.dev.yml file
+# or use profiles, or run with the override below:
+# 
+# To run in development mode:
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# 
+# Where docker-compose.dev.yml would contain:
+# services:
+#   web:
+#     environment:
+#       - FLASK_ENV=development
 
 # Define the named volume
 volumes:

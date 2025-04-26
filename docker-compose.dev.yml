@@ -1,0 +1,15 @@
+# Development configuration override for docker-compose.yml
+# Use this with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  web:
+    # Override environment variables for development mode
+    environment:
+      - FLASK_ENV=development
+    # Optional: You can also enable hot reloading by mounting source files
+    volumes:
+      - ./:/app
+      - glove_data:/app/glove
+    # Optional: Override command to use Flask development server instead of Gunicorn
+    # Only use this for actual development, not recommended for any production use
+    command: python -m flask run --host=0.0.0.0 --port=4001

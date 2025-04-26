@@ -59,7 +59,7 @@ This is the recommended method for both development and production environments:
 
 2. Build and start the Docker container:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
    This will:
@@ -70,7 +70,7 @@ This is the recommended method for both development and production environments:
 
 3. Check if the service is running:
    ```bash
-   docker-compose logs -f
+   docker compose logs -f
    ```
 
    Look for the message "Finished loading X word vectors with dimension 300" to confirm the service is ready.
@@ -103,39 +103,53 @@ If you prefer to run the service without Docker:
 
 ### Development Mode
 
-For development, you can use either Docker or manual installation:
+For development (with pretty-printed JSON responses), you can use either Docker or manual installation:
 
 1. **Docker Development**:
    ```bash
-   # Start the service
-   docker-compose up
+   # Use the development configuration override
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
    
    # Make changes to the code, then rebuild and restart
-   docker-compose down
-   docker-compose up --build
+   docker compose down
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
    ```
+
+   The development configuration sets `FLASK_ENV=development`, which enables:
+   - Pretty-printed JSON responses with 2-space indentation
+   - Flask development server with auto-reloading
+   - Source code directory mounted for live changes
 
 2. **Manual Development**:
    ```bash
-   # Start Flask's development server (not recommended for production)
+   # Set environment variables for development mode
    export FLASK_ENV=development
    export FLASK_APP=app.py
+   
+   # Start Flask's development server
    flask run --host=0.0.0.0 --port=4001
    ```
 
 ### Production Mode
 
-For production deployment:
+For production deployment (with minified JSON responses):
 
 1. **Docker Production** (recommended):
    ```bash
-   docker-compose up -d
+   # Standard production deployment
+  docker compose up -d
    ```
 
-   The service uses Gunicorn with 4 workers by default. You can modify the number of workers in the Dockerfile's CMD line according to your server's CPU count.
+   The default Docker Compose setup sets `FLASK_ENV=production`, which:
+   - Minifies JSON responses by removing whitespace
+   - Uses Gunicorn with 4 workers (modify in Dockerfile's CMD line as needed)
 
 2. **Manual Production**:
    ```bash
+   # Set environment variable for production mode
+   export FLASK_ENV=production
+   
+   # Start Gunicorn server
    gunicorn -w 4 -b 0.0.0.0:4001 app:app
    ```
 
@@ -287,6 +301,36 @@ Key facts about the vectors:
 3. **Filtering**: The original input words are excluded from the results.
 4. **Ranking**: Results are sorted by similarity score in descending order.
 
+### Environment-based JSON Formatting
+
+The service dynamically formats JSON responses based on the environment:
+
+- **Development Mode**: JSON responses are pretty-printed with 2-space indentation and sorted keys
+  ```json
+  {
+    "input_words": [
+      "apple",
+      "banana"
+    ],
+    "top_n_requested": 3,
+    "common_words": [
+      {
+        "similarity_score": 0.7823,
+        "word": "fruit"
+      }
+    ]
+  }
+  ```
+
+- **Production Mode**: JSON responses are minified to reduce bandwidth
+  ```json
+  {"input_words":["apple","banana"],"top_n_requested":3,"common_words":[{"similarity_score":0.7823,"word":"fruit"}]}
+  ```
+
+The formatting is controlled by the `FLASK_ENV` environment variable:
+- Set to `development` for pretty-printed JSON
+- Set to `production` (or anything else) for minified JSON
+
 ### Performance Considerations
 
 - **Memory Usage**: The GloVe vectors require approximately 1-2GB of RAM when loaded.
@@ -306,7 +350,7 @@ Key facts about the vectors:
 **Solution**: Ensure your input words are common English words. GloVe has a large but limited vocabulary. Try using the base form of words (e.g., "cat" instead of "cats").
 
 **Problem**: Docker container exits unexpectedly.
-**Solution**: Check logs with `docker-compose logs`. Ensure you have enough disk space and RAM available.
+**Solution**: Check logs with `docker compose logs`. Ensure you have enough disk space and RAM available.
 
 ## License
 

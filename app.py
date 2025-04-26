@@ -5,8 +5,28 @@ import wget
 import zipfile
 from scipy.spatial.distance import cosine
 import sys # Import sys to check Python version
+import json
 
+# Initialize Flask app
 app = Flask(__name__)
+
+# Configure JSON formatting based on environment
+# Check if we're in development or production mode
+FLASK_ENV = os.environ.get('FLASK_ENV', 'production').lower()
+IS_DEVELOPMENT = FLASK_ENV == 'development'
+
+# Configure Flask's JSON settings based on environment
+if IS_DEVELOPMENT:
+    # Pretty print with 2-space indentation in development
+    app.json.compact = False
+    app.json.sort_keys = True
+    # Set indentation for jsonify responses
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+    app.config['JSONIFY_PRETTYPRINT_REGULAR_INDENT'] = 2
+else:
+    # Minify JSON in production by removing whitespace
+    app.json.compact = True
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 # Global variables
 word_vectors = {}
@@ -211,7 +231,7 @@ def find_common_word_api(): # Renamed function to avoid conflict with app name
     data = request.get_json()
 
     if not data or 'words' not in data:
-        return jsonify({'error': 'Input must contain a list of words'}), 400
+        return custom_jsonify({'error': 'Input must contain a list of words'}), 400
 
     words = data['words']
     # Get top_n from the request, default to 5 if not provided
@@ -219,10 +239,10 @@ def find_common_word_api(): # Renamed function to avoid conflict with app name
 
     # Input validation
     if not words or not isinstance(words, list) or not all(isinstance(w, str) for w in words):
-        return jsonify({'error': 'Words must be provided as a non-empty list of strings'}), 400
+        return custom_jsonify({'error': 'Words must be provided as a non-empty list of strings'}), 400
 
     if not isinstance(top_n, int) or top_n <= 0:
-         return jsonify({'error': 'top_n must be a positive integer'}), 400
+         return custom_jsonify({'error': 'top_n must be a positive integer'}), 400
 
     # Calculate centroid of word vectors
     centroid = find_centroid(words)
@@ -237,7 +257,7 @@ def find_common_word_api(): # Renamed function to avoid conflict with app name
              # Limit missing words shown to avoid huge messages
              missing_display = missing_words[:10] + (['...'] if len(missing_words) > 10 else [])
              error_msg += f" Missing words ({len(missing_words)} total): {', '.join(missing_display)}"
-        return jsonify({'error': error_msg}), 400
+        return custom_jsonify({'error': error_msg}), 400
 
 
     # Find the closest words to the centroid, excluding input words
@@ -246,7 +266,7 @@ def find_common_word_api(): # Renamed function to avoid conflict with app name
 
     # Check if any relevant words were found after exclusion
     if not common_words_results:
-         return jsonify({'error': 'Could not find any related words in the vocabulary (excluding input words). This might happen if input words are very specific, cover a concept poorly represented, or if the vocabulary is small.'}), 400
+         return custom_jsonify({'error': 'Could not find any related words in the vocabulary (excluding input words). This might happen if input words are very specific, cover a concept poorly represented, or if the vocabulary is small.'}), 400
 
 
     result = {
@@ -255,7 +275,32 @@ def find_common_word_api(): # Renamed function to avoid conflict with app name
         'common_words': common_words_results # This is now a list of results
     }
 
-    return jsonify(result)
+    return custom_jsonify(result)
+
+# Log environment mode on startup
+print(f"Starting application in {FLASK_ENV.upper()} mode")
+print(f"JSON formatting: {'Pretty-print' if IS_DEVELOPMENT else 'Minified'}")
+
+# Create a custom jsonify function to handle proper formatting based on environment
+def custom_jsonify(*args, **kwargs):
+    """Custom jsonify that formats JSON based on environment"""
+    response = jsonify(*args, **kwargs)
+    
+    # For more control, we can override the default Flask behavior
+    # by modifying the response directly
+    if args and len(args) == 1 and not kwargs:
+        data = args[0]
+    else:
+        data = dict(*args, **kwargs)
+        
+    if IS_DEVELOPMENT:
+        # Pretty-print JSON in development mode
+        response.data = json.dumps(data, indent=2, sort_keys=True).encode('utf-8')
+    else:
+        # Minify JSON in production mode
+        response.data = json.dumps(data, separators=(',', ':')).encode('utf-8')
+    
+    return response
 
 # --- GloVe Loading happens here when the module is imported ---
 # This will run when Gunicorn starts the app
@@ -268,11 +313,10 @@ if __name__ == '__main__':
     # This block is primarily for simple direct execution (e.g., python app.py)
     # For production, use Gunicorn as defined in the Dockerfile/docker-compose
     print("Running in development mode. Use Gunicorn for production deployments.")
-    # app.run(debug=True, host='0.0.0.0', port=4001, threaded=True) # Removed for production setup
+    # Development server configuration when running directly
+    if IS_DEVELOPMENT:
+        app.run(debug=True, host='0.0.0.0', port=4001, threaded=True)
     # You could keep this for convenience if you sometimes want to run it without Docker/Gunicorn,
     # but be mindful it's the development server. If kept, adjust port or logic
     # to not conflict if running inside Docker compose which maps port 4001.
-    # A common pattern is to check an environment variable:
-    # if os.environ.get('FLASK_ENV') == 'development':
-    #    app.run(debug=True, ...)
     pass # Or just add a message
