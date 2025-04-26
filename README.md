@@ -53,8 +53,8 @@ This is the recommended method for both development and production environments:
 
 1. Clone this repository:
    ```bash
-   git clone https://your-repository-url.git
-   cd word-vector-similarity-service
+   git clone https://github.com/tsawler/word-vector-sim.git
+   cd word-vector-sim
    ```
 
 2. Build and start the Docker container:
