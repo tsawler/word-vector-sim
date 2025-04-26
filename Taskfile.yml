@@ -5,6 +5,8 @@ version: '3'
 tasks:
 
   up_dev:
+    aliases:
+      - up
     cmds:
       - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
