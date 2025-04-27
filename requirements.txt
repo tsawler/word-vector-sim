@@ -1,4 +1,4 @@
-Flask==2.3.3 # Use a specific version
-numpy==1.24.4 # Use a specific version
-scipy==1.10.1 # Use a specific version
-gunicorn==21.2.0 # Use a specific version
+Flask==2.3.3 
+numpy==1.24.4 
+scipy==1.10.1 
+gunicorn==21.2.0 
