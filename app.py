@@ -1,5 +1,5 @@
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string, redirect, url_for
 import os
 import urllib.request  # Replace wget with urllib.request
 import zipfile
@@ -506,6 +506,202 @@ def find_common_word_api():
     # Use our custom_jsonify function for formatting.
     return custom_jsonify(result)
 
+# --- Web Interface Route ---
+@app.route('/', methods=['GET', 'POST'])
+def web_interface():
+    """
+    Provides a web interface for the word similarity functionality.
+    GET: Shows a form for entering words.
+    POST: Processes the form, finds similar words, and shows results.
+    """
+    results = None
+    input_words = []
+    error_message = None
+    
+    if request.method == 'POST':
+        # Get form data
+        words_input = request.form.get('words', '').strip()
+        top_n = request.form.get('top_n', '5')
+        
+        # Validate input
+        if not words_input:
+            error_message = "Please enter at least one word."
+        else:
+            # Parse input into a list of words
+            input_words = [word.strip() for word in words_input.split(',') if word.strip()]
+            
+            if not input_words:
+                error_message = "Please enter valid words separated by commas."
+            else:
+                try:
+                    top_n = int(top_n)
+                    if top_n <= 0:
+                        error_message = "Number of results must be a positive number."
+                    else:
+                        # Calculate centroid
+                        centroid = find_centroid(input_words)
+                        
+                        if centroid is None:
+                            missing_words = [word for word in input_words if word.lower() not in word_vectors]
+                            error_message = "None of the provided words were found in the vocabulary."
+                            if missing_words:
+                                missing_display = missing_words[:10] + (['...'] if len(missing_words) > 10 else [])
+                                error_message += f" Missing words: {', '.join(missing_display)}"
+                        else:
+                            # Find similar words
+                            results = find_closest_words(centroid, exclude_words=input_words, top_n=top_n)
+                            
+                            if not results:
+                                error_message = "Could not find any related words after excluding the input words."
+                except ValueError:
+                    error_message = "Number of results must be a valid number."
+    
+    # HTML template for the web interface
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Word Similarity Finder</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                line-height: 1.6;
+                color: #333;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            h1 {
+                color: #2c3e50;
+                margin-bottom: 20px;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+            input[type="text"], input[type="number"] {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+            button {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            button:hover {
+                background-color: #2980b9;
+            }
+            .results {
+                margin-top: 30px;
+                background-color: #f9f9f9;
+                padding: 15px;
+                border-radius: 4px;
+            }
+            .error {
+                color: #e74c3c;
+                background-color: #fadbd8;
+                padding: 10px;
+                border-radius: 4px;
+                margin-bottom: 15px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            .info {
+                margin-top: 30px;
+                font-size: 14px;
+                color: #7f8c8d;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Word Similarity Finder</h1>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="words">Enter words (separated by commas):</label>
+                <input type="text" id="words" name="words" value="{{ ','.join(input_words) if input_words else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="top_n">Number of results to show:</label>
+                <input type="number" id="top_n" name="top_n" value="{{ request.form.get('top_n', '5') }}" min="1" max="50" required>
+            </div>
+            
+            <button type="submit">Find Similar Words</button>
+        </form>
+        
+        {% if error_message %}
+        <div class="error">
+            {{ error_message }}
+        </div>
+        {% endif %}
+        
+        {% if results %}
+        <div class="results">
+            <h2>Results for: {{ ', '.join(input_words) }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Word</th>
+                        <th>Similarity Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ result.word }}</td>
+                        <td>{{ "%.4f"|format(result.similarity_score) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        <div class="info">
+            <p>This tool finds words that are semantically similar to the average meaning of your input words using pre-trained GloVe word vectors.</p>
+            <p>The similarity score ranges from -1 to 1, where 1 represents the highest similarity.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return render_template_string(html_template, 
+                                 request=request, 
+                                 input_words=input_words,
+                                 results=results,
+                                 error_message=error_message)
+
 # --- Application Startup ---
 
 # Print the environment mode the application is starting in.
@@ -535,6 +731,7 @@ if __name__ == '__main__':
     # Inform the user that this is for development and recommend Gunicorn for production.
     print("Running in development mode.")
     print("For production deployments, use a WSGI server like Gunicorn (e.g., 'gunicorn -w 4 app:app -b 0.0.0.0:4001').")
+    print("Web interface available at http://localhost:4001/")
 
     # Run the Flask development server if in development mode.
     if IS_DEVELOPMENT:
